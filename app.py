@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response, make_response
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 import time
 import base64
@@ -14,6 +14,7 @@ import directory_manager
 
 app = Flask(__name__)
 CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
     drawOptions={
@@ -100,6 +101,11 @@ def start():
     data['status'] = 0
     response = make_response(jsonify(data))
     return response
+    
+@app.route('/test')    
+@cross_origin()
+def helloWorld():
+  return "Hello, cross-origin-world!"
     
 if __name__ == '__main__':
     app.run(debug=True)
