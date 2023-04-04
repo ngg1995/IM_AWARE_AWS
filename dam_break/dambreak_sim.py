@@ -1,4 +1,4 @@
-
+import base64
 import numpy as np
 from math import pi
 from collections.abc import Iterable
@@ -62,66 +62,29 @@ class DAMBREAK_SIM:
     # number of states per particle
     CONST_STATES = 6
 
-    def __init__(self,srcInput=None,bAbsolutePath=False,demDirectory=None):
+    def __init__(self,simRecord,data):
         
-        if isinstance(srcInput,dict):
-            self.simRecord = srcInput
-            srcFileName = self.simRecord["File_Address"]
-            try:
-                self.fileHandler = self.simRecord['File_Handler']
-            except:
-                #Default to Google Cloud file handler
-                self._init_gcp_handler()
-        else:
-            srcFileName = srcInput
-            self._init_gcp_handler()
-
-        self.demDirectory = demDirectory
-
-        #if srcFileName:
-        if not bAbsolutePath:
-            srcFileName = srcFileName.split('im_aware_collab/')[-1]
-        self._load_innundation_data(srcFileName)
-
-    def _init_gcp_handler(self):
-        self.fileHandler = GCP_HANDLER(self.simRecord)
-
-    def _load_innundation_data(self, srcFileName):
-        """
-        Used to load simulation data.
-        """
-        #print('self.gcpHandler',self.gcpHandler)
-        #print('self.gcpHandler.bucket',self.gcpHandler.bucket)
-        #print('srcFileName',srcFileName)
-        try:
-            # self.data = self.fileHandler.load_csv_as_numpy(srcFileName)
-            self.data = np.genfromtxt(srcFileName,delimiter=",")
-        except OSError:
-            print("Simulation file %s failed to load" % srcFileName)
-            self.data = np.array([])
-        else:
-            data = self.data
-            rows = data.shape[0]
-            cols = data.shape[1]
+        self.simRecord = simRecord
+        
+        rows = data.shape[0]
+        cols = data.shape[1]
+        
+        if (cols-1) % self.CONST_STATES == 0:
+            self.simN = int((cols - 1)/self.CONST_STATES)
+            self.simTime = data[:,0]
             
-            if (cols-1) % self.CONST_STATES == 0:
-                self.simN = int((cols - 1)/self.CONST_STATES)
-                self.simTime = data[:,0]
-                
-                self.simLat = data[:,1:-1:self.CONST_STATES]
-                self.simLon = data[:,2:-1:self.CONST_STATES]
-                self.simAltitude = data[:,3:-1:self.CONST_STATES]
-                self.simVx = data[:,4:-1:self.CONST_STATES]
-                self.simVy = data[:,5:-1:self.CONST_STATES]
-                self.simVz = data[:,6::self.CONST_STATES]
-                self.simStartLat = np.mean(self.simLat[0,:])
-                self.simStartLon = np.mean(self.simLon[0,:])
-                self._lonAdjust = np.cos(self.simStartLat*pi/180)
-                self.simResY = self._earthRadius*(pi/180)
-                self.simResX = self.simResY * self._lonAdjust
-            else:
-                self.data = np.array([])
-                print("Simulation file %s has invalid format" % srcFileName)
+            self.simLat = data[:,1:-1:self.CONST_STATES]
+            self.simLon = data[:,2:-1:self.CONST_STATES]
+            self.simAltitude = data[:,3:-1:self.CONST_STATES]
+            self.simVx = data[:,4:-1:self.CONST_STATES]
+            self.simVy = data[:,5:-1:self.CONST_STATES]
+            self.simVz = data[:,6::self.CONST_STATES]
+            self.simStartLat = np.mean(self.simLat[0,:])
+            self.simStartLon = np.mean(self.simLon[0,:])
+            self._lonAdjust = np.cos(self.simStartLat*pi/180)
+            self.simResY = self._earthRadius*(pi/180)
+            self.simResX = self.simResY * self._lonAdjust
+
 
     def _time_index(self,timeArray):
         '''
@@ -195,7 +158,7 @@ class DAMBREAK_SIM:
         '''
         # Instantiate digital elevation model if not already done
         if not self.demData:
-            self.demData = DEM_DATA(self.simStartLat,self.simStartLon,self.fileHandler,demDirectory=self.demDirectory)
+            self.demData = DEM_DATA(self.simStartLat,self.simStartLon,self.fileHandler)
 
         # Get get particle position
         zParticle = self.get_altitude(index,timeArray)
@@ -342,7 +305,7 @@ class DAMBREAK_SIM:
             bFullRange = True
 
         if not self.demData:
-            self.demData = DEM_DATA(self.simStartLat,self.simStartLon,self.fileHandler,self.demDirectory)
+            self.demData = DEM_DATA(self.simStartLat,self.simStartLon,self.fileHandler)
 
         pts = []
         vpts = []
@@ -598,7 +561,12 @@ class DAMBREAK_SIM:
         im = Image.open(io.BytesIO(imageObj.read())) 
         im.save(fileName, "PNG")
     
-        
+    def get_image_data(self, mask,X,Y):
+        imageObj = self.save_mask_io(mask,X,Y)
+        imageObj.seek(0)
+        image_data = base64.b64encode(imageObj.getvalue()).decode('utf-8')
+        return image_data
+    
     def save_plot_io(self,x,y,xlabel,ylabel):
         fig = plt.figure()
         plt.plot(x,y)
@@ -644,9 +612,9 @@ class DEM_DATA:
     _lonAdjust = 1.0 #latitude-dependent adjustment factor for longitudinal resolution
 
 
-    def __init__(self,lat,lon,fileHandler=None,demDirectory=None):
-        if demDirectory != None:
-            self.demDirectory = demDirectory
+    def __init__(self,lat,lon,fileHandler=None):
+        # if demDirectory != None:
+        self.demDirectory = 'IMAWARE/Sim_Raw/data_DEM'
         self.mapZ,self.tifDir,self.mapLat,self.mapLon = jaxa.get_map(lat,lon,self.demDirectory,fileHandler=fileHandler)
         pxPerDeg_X = self.mapZ.shape[1]/(self.mapLon[1]-self.mapLon[0])
         pxPerDeg_Y = self.mapZ.shape[0]/(self.mapLat[1]-self.mapLat[0])

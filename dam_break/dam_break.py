@@ -41,13 +41,12 @@ class DAM_BREAK:
     def __init__(self,
                 siteLat=-23.0,siteLon=-43.5,
                 pondRadius=300.0,
-                nObj=1000,
+                nObj=100,
                 tailingsVolume=10.0e6,
                 tailingsDensity=1594.0,
                 maxTime=300.0,
                 timeStep=0.2,
                 dampingCoeff=0.04,
-                demDirectory='IMAWARE/Sim_Raw/data_DEM',
                 fileHandler=None):
         '''
         Constructor for DAM_BREAK object, representing a single (deterministic) simulation run.
@@ -65,7 +64,7 @@ class DAM_BREAK:
 
         ## Calculate site location in cartesian coordinates
         print('Loading digital elevation model...')
-        self.demData = DEM_DATA(siteLat,siteLon,fileHandler=fileHandler,demDirectory=demDirectory)
+        self.demData = DEM_DATA(siteLat,siteLon,fileHandler=fileHandler)
         print('...digital elevation model loaded.')
         siteX,siteY = self.demData._geo2pos(self.siteLat,self.siteLon)
         siteZ = self.demData.get_elev(self.siteLat,self.siteLon)
@@ -78,26 +77,26 @@ class DAM_BREAK:
         self.init_particles(nObj)
 
     def get_database_record(self,simID):
-        record = {"Particle_Number": int(self.nObj),\
-                "Particle_Mass": float(self.get_particle_mass()),\
-                "Particle_Radius": float(self.get_particle_radius()),\
-                "Damping": self.dampingCoeff,\
-                "Volume_Factor": -1,\
-                "Latitude_Offset": 0,\
-                "Longitude_Offset": 0,\
-                "Tailings_Density": self.tailingsDensity,\
-                "Max_Distance": -1,\
-                "Max_Velocity": -1,\
-                "Total_Energy": -1,\
-                "Flooding_Area": -1,\
-                "Analysis_ID": '',\
-                "Evaluation_Time": self.maxTime,\
-                "Type_of_Analysis": "DAMBREAK",\
-                "Parent_ID": '',\
-                "Tree_Level": 0,\
-                "Repeat": 0,\
-                "File_Address": '',\
-                "Output_Summary": '',\
+        record = {"Particle_Number": int(self.nObj),
+                "Particle_Mass": float(self.get_particle_mass()),
+                "Particle_Radius": float(self.get_particle_radius()),
+                "Damping": self.dampingCoeff,
+                "Volume_Factor": -1,
+                "Latitude_Offset": 0,
+                "Longitude_Offset": 0,
+                "Tailings_Density": self.tailingsDensity,
+                "Max_Distance": -1,
+                "Max_Velocity": -1,
+                "Total_Energy": -1,
+                "Flooding_Area": -1,
+                "Analysis_ID": '',
+                "Evaluation_Time": self.maxTime,
+                "Type_of_Analysis": "DAMBREAK",
+                "Parent_ID": '',
+                "Tree_Level": 0,
+                "Repeat": 0,
+                "File_Address": '',
+                "Output_Summary": '',
                 "ID": simID}
         return record
 

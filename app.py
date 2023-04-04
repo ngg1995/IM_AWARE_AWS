@@ -1,16 +1,21 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response, make_response
+from flask_cors import CORS
 
+import time
+import base64
 from datetime import datetime
 import folium
 import os
+from io import BytesIO
 
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
 import directory_manager
 
 app = Flask(__name__)
+CORS(app)
 
-def sim( latitude, longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
+def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
     drawOptions={
             'polyline':True,
             'rectangle':True,
@@ -24,12 +29,7 @@ def sim( latitude, longitude, pondRadius, nObj, tailingsVolume, tailingsDensity,
 
     latitude= -20.119722
     longitude= -44.121389
-    pondRadius= 103.0
-    nObj= 100
-    tailingsVolume= 2685782.0
-    tailingsDensity= 1594.0
-    maxTime= 180.0
-    timeStep= 0.2
+
 
     damID = 'default_dam'
     simID = 'default_sim'
@@ -43,66 +43,63 @@ def sim( latitude, longitude, pondRadius, nObj, tailingsVolume, tailingsDensity,
             'maxTime': maxTime,
             'timeStep': timeStep,
             'dampingCoeff': 0.04,
-            'demDirectory': demDirectory,
             'fileHandler': None
     }
 
     simulation = None
     fileHandler = None
 
-    def get_sim_ID():
-        ''' Generates a unique ID for a simulation'''
-        time_stamp = datetime.now()
-        fileID = '{}-{}'.format(damID,
-                                time_stamp.strftime("%Y%m%d-%H%M%S"))
-        return fileID
 
 
     ''' Runs the flood simulation for the selected point '''
-    simID = get_sim_ID()
+    simID = f'{damID}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     simulation = DAM_BREAK(**simulationSettings)
     simulation._bVerbose = True
     simulation.run_simulation()
-    (fileName,csvName) = simulation.save_results(damID,simID,fileHandler='')
 
     simRecord = simulation.get_database_record(simID)
-    simRecord['File_Address'] = csvName
-    simRecord['File_Handler'] = fileHandler
-    simResultsHandler = DAMBREAK_SIM(srcInput=simRecord,bAbsolutePath=True,demDirectory=demDirectory)
-    renderPath = os.path.dirname(csvName)
-    # mask,maskX,maskY = simResultsHandler.fit_speed_mask(
-    #                                             simResultsHandler.max_time(),
-    #                                             resolution = mapResolution,
-    #                                             skipPoints = mapSkipPoints)
-    # maskPath = renderPath + '/speed_%s.png' % simID
-    # simResultsHandler.save_mask(maskPath,mask,maskX,maskY)
 
-    # # Create new sim info
-    extent = simResultsHandler.get_lon_lat_bounds(maxTime=simResultsHandler.max_time())
-    print(latitude, longitude, extent)
-    return "done"
+    simResultsHandler = DAMBREAK_SIM(simRecord,simulation.results_to_array())
+    
+    dMask,X,Y,vxMask,vyMask,vzMask,speedMask,altMask,eMask,depthMask = simResultsHandler.fit_all_masks(simResultsHandler.max_time())
+    
+    results = {}
+
+    results['minLon'],results['maxLon'],results['minLat'],results['maxLat'] = simResultsHandler.get_lon_lat_bounds(maxTime=simResultsHandler.max_time())
+    
+    masks = {
+        'speed': speedMask,
+        'alt': altMask,
+        'energy': eMask,
+        'inundation': dMask > 0,
+        'density': dMask,
+        'depth': depthMask
+    }
+    for name, mask in masks.items():
+        
+        results[name] = simResultsHandler.get_image_data(mask,X,Y)
+
+    
+    return results
 
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        # Get the values of a, b, and c from the form
-        # a = float(request.form.get('a'))
-        # b = float(request.form.get('b'))
-        # c = float(request.form.get('c'))
-        simSettings = {k:k.get(v,None) for k,v in request.form}
-        print(simSettings)
-        # Pass the values to the sim() function
-        # result = sim()
-        return render_template('result.html', result=0)
-    else:
-        m = folium.Map([-20.119722, -44.121389],zoom_start=15)
-
-        # set the iframe width and height
-        m.get_root().width = "100%"
-        m.get_root().height = "100%"
-        iframe = m.get_root()._repr_html_()
-        return render_template('index.html',iframe = iframe)
-
+@app.route('/sim', methods=['POST'])
+def start():
+    json_data = request.json
+    
+    try:
+        for k,v in json_data.items():
+            json_data[k] = float(v)
+            assert json_data[k] > 0
+    except:
+        return jsonify(
+            {'status': 1}
+        )
+    
+    data = sim(**json_data)
+    data['status'] = 0
+    response = make_response(jsonify(data))
+    return response
+    
 if __name__ == '__main__':
     app.run(debug=True)
