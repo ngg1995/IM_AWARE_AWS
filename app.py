@@ -83,8 +83,8 @@ def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
     
     return results
 
-
 @app.route('/sim', methods=['POST'])
+@cross_origin()
 def start():
     json_data = request.json
     
@@ -102,10 +102,10 @@ def start():
     response = make_response(jsonify(data))
     return response
     
-@app.route('/test')    
+@app.route('/')    
 @cross_origin()
 def helloWorld():
-  return "Hello, cross-origin-world!"
+  return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
     app.run(debug=True)
