@@ -7,6 +7,7 @@ from datetime import datetime
 import folium
 import os
 from io import BytesIO
+import numpy as np
 
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
@@ -16,7 +17,7 @@ app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
+def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
     drawOptions={
             'polyline':True,
             'rectangle':True,
@@ -24,13 +25,6 @@ def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
             'circle':False,
             'marker':True,
             'circlemarker':False}
-
-    resultsDirectory = directory_manager.get_warehouse_dir()
-    demDirectory = directory_manager.get_dem_dir()
-
-    latitude= -20.119722
-    longitude= -44.121389
-
 
     damID = 'default_dam'
     simID = 'default_sim'
@@ -46,11 +40,6 @@ def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
             'dampingCoeff': 0.04,
             'fileHandler': None
     }
-
-    simulation = None
-    fileHandler = None
-
-
 
     ''' Runs the flood simulation for the selected point '''
     simID = f'{damID}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
@@ -68,11 +57,14 @@ def sim(pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
 
     results['minLon'],results['maxLon'],results['minLat'],results['maxLat'] = simResultsHandler.get_lon_lat_bounds(maxTime=simResultsHandler.max_time())
     
+    inud = dMask > 0
+    inud[inud == 0] = np.nan
+    
     masks = {
         'speed': speedMask,
         'alt': altMask,
         'energy': eMask,
-        'inundation': dMask > 0,
+        'inundation': inud,
         'density': dMask,
         'depth': depthMask
     }
@@ -90,11 +82,13 @@ def start():
     
     try:
         for k,v in json_data.items():
+
             json_data[k] = float(v)
-            assert json_data[k] > 0
-    except:
+
+    except Exception as e:
+        print(e)
         return jsonify(
-            {'status': 1}
+            {'status': 1,'error':e}
         )
     
     data = sim(**json_data)
