@@ -1,21 +1,56 @@
 from flask import Flask, request, jsonify, render_template, Response, make_response
 from flask_cors import CORS, cross_origin
 
-import time
 import base64
 from datetime import datetime
-import folium
-import os
-from io import BytesIO
+import io
 import numpy as np
+import plotly.graph_objects as go
+
 
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
-import directory_manager
 
 app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+
+
+def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, **kwargs):
+
+    x_width = np.abs(np.min(X) - np.max(X))
+    y_width = np.abs(np.min(Y) - np.max(Y))
+    
+    fig = go.Figure(data =
+        go.Contour(
+            z = mask.T,
+            # showscale=False,
+            opacity=0.8,
+            colorbar=dict(**kwargs)
+        ))
+    
+    
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_layout(
+        width=1000, 
+        height=int(1000 * y_width/x_width), 
+        margin=dict(l=0, r=0, t=0, b=0),
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+
+    # colorbar_fig = go.Figure(data=fig.data, layout=fig.layout)
+    # colorbar_fig.update_layout(width=50, height=250, margin=dict(l=0, r=0, t=0, b=0))
+    # colorbar_fig.update_layout(showlegend=False)
+    # colorbar_fig.update_layout(plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)')
+    # colorbar_fig.show()
+    
+    image_data = fig.to_image(format="png")
+    # colorbar_data = colorbar_fig.to_image(format="png")
+    
+    return base64.b64encode(image_data).decode('utf-8')#, base64.b64encode(colorbar_data).decode('utf-8')
+
 
 def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
     drawOptions={
@@ -68,11 +103,21 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, m
         'density': dMask,
         'depth': depthMask
     }
+    
+    units = {
+        'speed': 'm/s',
+        'alt': 'm',
+        'energy': 'J',
+        'inundation': '',
+        'density': '',
+        'depth': 'm'
+    }
+    
     for name, mask in masks.items():
         
-        results[name] = simResultsHandler.get_image_data(mask,X,Y)
+        results[name] =  get_image_data(mask,X,Y,title = units[name])
+        # results[name], results[f"colorbar-{name}"] = get_image_data(mask,X,Y,title = units[name])
 
-    
     return results
 
 @app.route('/sim', methods=['POST'])
@@ -102,4 +147,4 @@ def helloWorld():
   return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(port=5000, debug=True)

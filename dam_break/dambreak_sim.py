@@ -2,7 +2,6 @@ import base64
 import numpy as np
 from math import pi
 from collections.abc import Iterable
-import matplotlib.pyplot as plt
 
 import io
 from PIL import Image
@@ -542,45 +541,45 @@ class DAMBREAK_SIM:
             areach.append(180/(np.pi)*np.arctan((zinit[-1] - zend[-1])/dists[-1]))
         return areach
 
-    def save_mask_io(self,mask,X,Y):
-        fig = plt.figure()
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        plt.axis("off")
-        plt.contourf(X,Y,mask)
+    # def save_mask_io(self,mask,X,Y):
+    #     fig = plt.figure()
+    #     ax = plt.Axes(fig, [0., 0., 1., 1.])
+    #     ax.set_axis_off()
+    #     plt.axis("off")
+    #     plt.contourf(X,Y,mask)
         
-        imageObj = io.BytesIO()
-        plt.savefig(imageObj,transparent=True,bbox_inches='tight',pad_inches=0.0)
-        plt.close()
-        return imageObj
+    #     imageObj = io.BytesIO()
+    #     plt.savefig(imageObj,transparent=True,bbox_inches='tight',pad_inches=0.0)
+    #     plt.close()
+    #     return imageObj
 
-    def save_mask(self,fileName,mask,X,Y):
-        imageObj = self.save_mask_io(mask,X,Y)
+    # def save_mask(self,fileName,mask,X,Y):
+    #     imageObj = self.save_mask_io(mask,X,Y)
 
-        imageObj.seek(0)
-        im = Image.open(io.BytesIO(imageObj.read())) 
-        im.save(fileName, "PNG")
+    #     imageObj.seek(0)
+    #     im = Image.open(io.BytesIO(imageObj.read())) 
+    #     im.save(fileName, "PNG")
     
-    def get_image_data(self, mask,X,Y):
-        imageObj = self.save_mask_io(mask,X,Y)
-        imageObj.seek(0)
-        image_data = base64.b64encode(imageObj.getvalue()).decode('utf-8')
-        return image_data
+    # def get_image_data(self, mask,X,Y):
+    #     imageObj = self.save_mask_io(mask,X,Y)
+    #     imageObj.seek(0)
+    #     image_data = base64.b64encode(imageObj.getvalue()).decode('utf-8')
+    #     return image_data
     
-    def save_plot_io(self,x,y,xlabel,ylabel):
-        fig = plt.figure()
-        plt.plot(x,y)
-        plt.grid()
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        imageObj = io.BytesIO()
-        plt.savefig(imageObj,transparent=True,bbox_inches='tight',pad_inches=0.0)
-        plt.close()
-        return imageObj
+    # def save_plot_io(self,x,y,xlabel,ylabel):
+    #     fig = plt.figure()
+    #     plt.plot(x,y)
+    #     plt.grid()
+    #     plt.xlabel(xlabel)
+    #     plt.ylabel(ylabel)
+    #     imageObj = io.BytesIO()
+    #     plt.savefig(imageObj,transparent=True,bbox_inches='tight',pad_inches=0.0)
+    #     plt.close()
+    #     return imageObj
 
-    def save_plot(self,fileName,x,y,xlabel,ylabel):
-        imageObj = self.save_plot_io(x,y,xlabel,ylabel)
-        self.fileHandler.save_bytes(imageObj.getvalue(),fileName)
+    # def save_plot(self,fileName,x,y,xlabel,ylabel):
+    #     imageObj = self.save_plot_io(x,y,xlabel,ylabel)
+    #     self.fileHandler.save_bytes(imageObj.getvalue(),fileName)
 
     def _geo2pos(self,latIn,lonIn):
         '''
