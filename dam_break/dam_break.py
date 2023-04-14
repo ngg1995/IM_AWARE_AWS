@@ -105,7 +105,7 @@ class DAM_BREAK:
         nRadial = math.floor( (nObj*self.pondRadius / (math.pi*self.pondHeight))**(1/3))
         particleRadius = self.pondRadius/(2*nRadial)
         nLayers = round(self.pondHeight/(2*particleRadius))
-
+        print(particleRadius)
         # Keep parameters in valid ranges
         nRadial = max((nRadial,1))
         nLayers = max((nLayers,1))
