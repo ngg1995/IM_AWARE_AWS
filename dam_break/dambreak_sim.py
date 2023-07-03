@@ -598,7 +598,7 @@ class DEM_DATA:
     '''
     #Directory to store DEM data
     #demDirectory = directory_manager.get_dem_dir()
-    demDirectory = 'IMAWARE/Sim_Raw/data_DEM'
+    demDirectory = 'jaxa_data'
     #Resolution per horizontal pixel (meters/pixel)
     mapResX = 30
     #Resolution per vertical pixel (meters/pixel)
@@ -613,7 +613,7 @@ class DEM_DATA:
 
     def __init__(self,lat,lon,fileHandler=None):
         # if demDirectory != None:
-        self.demDirectory = 'IMAWARE/Sim_Raw/data_DEM'
+        self.demDirectory = 'jaxa_data'
         self.mapZ,self.tifDir,self.mapLat,self.mapLon = jaxa.get_map(lat,lon,self.demDirectory,fileHandler=fileHandler)
         pxPerDeg_X = self.mapZ.shape[1]/(self.mapLon[1]-self.mapLon[0])
         pxPerDeg_Y = self.mapZ.shape[0]/(self.mapLat[1]-self.mapLat[0])
