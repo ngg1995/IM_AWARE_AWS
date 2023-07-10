@@ -108,7 +108,7 @@ class DAMBREAK_SIM:
         if maxTime == None:
             maxTime = self.max_time()
         if len(self.mask) == 0:
-            self.mask,self.maskX,self.maskY = self.fit_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1)
+            self.mask,self.maskX,self.maskY = self.fit_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1)
         return np.min(self.maskX),np.max(self.maskX),np.min(self.maskY),np.max(self.maskY)
 
     
@@ -270,7 +270,7 @@ class DAMBREAK_SIM:
         '''
         return self.simResX*self.simResY/(3600**2)
 
-    def fit_all_masks(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_all_masks(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         '''
         Fits a mask covering the inundation area and returns average velocities for each cell. Each value indicates the number of particles within a cell of the mask.
             maxTime - maximum simulation time (maxTime=self.time[-1] for full simulation)
@@ -404,7 +404,7 @@ class DAMBREAK_SIM:
         self.depthMask = depthMask        
         return dMask,X,Y,vxMask,vyMask,vzMask,speedMask,altMask,eMask,depthMask
 
-    def fit_velocity_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_velocity_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         '''
         Fits a mask covering the inundation area and returns average velocities for each cell. Each value indicates the number of particles within a cell of the mask.
             maxTime - maximum simulation time (maxTime=self.time[-1] for full simulation)
@@ -416,11 +416,11 @@ class DAMBREAK_SIM:
         _,maskX,maskY,vxMask,vyMask,vzMask,speedMask,_,_,_ = self.fit_all_masks(maxTime,resolution,bFullRange,skipPoints)
         return vxMask,vyMask,vzMask,speedMask,maskX,maskY
 
-    def fit_speed_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_speed_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         _,_,_,speedMask,maskX,maskY = self.fit_velocity_mask(maxTime,resolution,bFullRange,skipPoints)
         return speedMask,maskX,maskY
 
-    def fit_density_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_density_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         '''
         Fits a mask covering the inundation area. Each value indicates the number of particles within a cell of the mask.
             maxTime - maximum simulation time (maxTime=self.time[-1] for full simulation)
@@ -432,7 +432,7 @@ class DAMBREAK_SIM:
         dMask,X,Y,_,_,_,_,_,_,_ = self.fit_all_masks(maxTime,resolution,bFullRange,skipPoints)
         return dMask,X,Y
 
-    def fit_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         '''
         Fits a boolean mask covering the inundation area.
             maxTime - maximum simulation time (maxTime=self.time[-1] for full simulation)
@@ -444,15 +444,15 @@ class DAMBREAK_SIM:
         mask,X,Y = self.fit_density_mask(maxTime,resolution,bFullRange,skipPoints)
         return mask>0,X,Y
 
-    def fit_energy_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_energy_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         dMask,maskX,maskY,vxMask,vyMask,vzMask,speedMask,altMask,eMask,depthMask = self.fit_all_masks(maxTime,resolution,bFullRange,skipPoints)
         return eMask,maskX,maskY
 
-    def fit_altitude_mask(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def fit_altitude_mask(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         _,maskX,maskY,_,_,_,_,altMask,_,_ = self.fit_all_masks(maxTime,resolution,bFullRange,skipPoints)
         return altMask,maskX,maskY
 
-    def get_flood_area(self,timeArray=[],resolution=5,bFullRange=True,skipPoints=1):
+    def get_flood_area(self,timeArray=[],resolution=1,bFullRange=True,skipPoints=1):
         '''
         Calculates approximate inundated area for a set of time values
         '''
@@ -470,7 +470,7 @@ class DAMBREAK_SIM:
             a = a[0]
 
         return a
-    def _get_flood_area(self,maxTime,resolution=5,bFullRange=True,skipPoints=1):
+    def _get_flood_area(self,maxTime,resolution=1,bFullRange=True,skipPoints=1):
         '''
         Calculates approximate inundated area
         '''
@@ -598,7 +598,7 @@ class DEM_DATA:
     '''
     #Directory to store DEM data
     #demDirectory = directory_manager.get_dem_dir()
-    demDirectory = 'IMAWARE/Sim_Raw/data_DEM'
+    demDirectory = 'jaxa_data'
     #Resolution per horizontal pixel (meters/pixel)
     mapResX = 30
     #Resolution per vertical pixel (meters/pixel)
@@ -613,7 +613,7 @@ class DEM_DATA:
 
     def __init__(self,lat,lon,fileHandler=None):
         # if demDirectory != None:
-        self.demDirectory = 'IMAWARE/Sim_Raw/data_DEM'
+        self.demDirectory = 'jaxa_data'
         self.mapZ,self.tifDir,self.mapLat,self.mapLon = jaxa.get_map(lat,lon,self.demDirectory,fileHandler=fileHandler)
         pxPerDeg_X = self.mapZ.shape[1]/(self.mapLon[1]-self.mapLon[0])
         pxPerDeg_Y = self.mapZ.shape[0]/(self.mapLat[1]-self.mapLat[0])

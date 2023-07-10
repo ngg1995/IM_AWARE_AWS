@@ -75,7 +75,7 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, m
             'dampingCoeff': 0.04,
             'fileHandler': None
     }
-
+    print(latitude,longitude)
     ''' Runs the flood simulation for the selected point '''
     simID = f'{damID}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     simulation = DAM_BREAK(**simulationSettings)
@@ -91,7 +91,6 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, m
     results = {}
 
     results['minLon'],results['maxLon'],results['minLat'],results['maxLat'] = simResultsHandler.get_lon_lat_bounds(maxTime=simResultsHandler.max_time())
-    
     inud = dMask > 0
     inud[inud == 0] = np.nan
     
@@ -147,5 +146,5 @@ def helloWorld():
   return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
-    # app.run(port=5000, debug=True)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
