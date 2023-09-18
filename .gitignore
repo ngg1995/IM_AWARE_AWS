@@ -1,4 +1,6 @@
 .pyenv
+venv
 *.pyc
 IMAWARE
 jaxa_data
+colour.py
