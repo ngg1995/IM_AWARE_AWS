@@ -1,4 +1,4 @@
-venv
+.pyenv
 *.pyc
 IMAWARE
 jaxa_data

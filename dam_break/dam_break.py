@@ -32,7 +32,7 @@ class DAM_BREAK:
     tailingsDensity = 1594.0 # density of released tailings
     maxTime = 300.0 # number of seconds to simulate
     frictionCoeff = 1.0 # friction coefficient between particles and the floor
-    dampingCoeff = 0.04 # damping coefficient affecting angular rotation of particles
+    dampingFactor = 0.04 # damping coefficient affecting angular rotation of particles
     collisionFrictionCoeff = 0.0 # friction coefficient between particles
 
     time = []
@@ -46,7 +46,7 @@ class DAM_BREAK:
                 tailingsDensity=1594.0,
                 maxTime=300.0,
                 timeStep=0.2,
-                dampingCoeff=0.04,
+                dampingFactor=0.04,
                 fileHandler=None):
         '''
         Constructor for DAM_BREAK object, representing a single (deterministic) simulation run.
@@ -59,7 +59,7 @@ class DAM_BREAK:
         self.tailingsDensity = tailingsDensity
         self.maxTime = maxTime
         self._timeStep = timeStep
-        self.dampingCoeff = dampingCoeff
+        self.dampingFactor = dampingFactor
         self.time = np.arange(0.0,self.maxTime+self._timeStep,self._timeStep)
 
         ## Calculate site location in cartesian coordinates
@@ -80,7 +80,7 @@ class DAM_BREAK:
         record = {"Particle_Number": int(self.nObj),
                 "Particle_Mass": float(self.get_particle_mass()),
                 "Particle_Radius": float(self.get_particle_radius()),
-                "Damping": self.dampingCoeff,
+                "Damping": self.dampingFactor,
                 "Volume_Factor": -1,
                 "Latitude_Offset": 0,
                 "Longitude_Offset": 0,
@@ -126,7 +126,7 @@ class DAM_BREAK:
                                 radius=particleRadius,
                                 inertia=1.0,
                                 frictionCoeff=self.frictionCoeff,
-                                dampingCoeff=self.dampingCoeff,
+                                dampingFactor=self.dampingFactor,
                                 collisionFrictionCoeff=self.collisionFrictionCoeff,
                                 time=self.time
                                 )
@@ -246,8 +246,8 @@ class DAM_BREAK_PARTICLE:
     radius = 1.0
     inertia = 1.0
     frictionCoeff = 1.0
-    dampingCoeff = 0.04
-    dampingTimeConstant = 1.0/dampingCoeff
+    dampingFactor = 0.04
+    dampingTimeConstant = 1.0/dampingFactor
     collisionFrictionCoeff = 0.0
 
     ## - Initial states
@@ -259,14 +259,14 @@ class DAM_BREAK_PARTICLE:
     mapCell = [-1,-1]
     demData = None
 
-    def __init__(self,demData,mass,radius,inertia,frictionCoeff,dampingCoeff,collisionFrictionCoeff,time):
+    def __init__(self,demData,mass,radius,inertia,frictionCoeff,dampingFactor,collisionFrictionCoeff,time):
         self.demData = demData
         self.mass = mass
         self.radius = radius
         self.inertia = inertia
         self.frictionCoeff = frictionCoeff
-        self.dampingCoeff = dampingCoeff
-        self.dampingTimeConstant = 1.0/dampingCoeff
+        self.dampingFactor = dampingFactor
+        self.dampingTimeConstant = 1.0/dampingFactor
         self.collisionFrictionCoeff = collisionFrictionCoeff
         self.X = np.zeros((len(time),self._n_states))
 

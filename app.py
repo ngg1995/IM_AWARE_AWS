@@ -6,7 +6,7 @@ from datetime import datetime
 import io
 import numpy as np
 import plotly.graph_objects as go
-
+from matplotlib import cm
 
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
@@ -15,17 +15,43 @@ app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+def rgba_to_hex(rgba_color):
+    """
+    Convert RGBA color to hexadecimal color.
 
-def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, **kwargs):
+    :param rgba_color: Tuple or list containing RGBA values in the range [0, 1].
+    :return: Hexadecimal color string (e.g., '#RRGGBB' or '#RRGGBBAA' for RGB or RGBA).
+    """
+    if len(rgba_color) < 3 or len(rgba_color) > 4:
+        raise ValueError("RGBA color should be a tuple or list of 3 or 4 values.")
+    
+    rgba_color = [int(value * 255) for value in rgba_color[:3]]  # Convert to 8-bit values (0-255)
+    
+    if len(rgba_color) == 4:
+        alpha = int(rgba_color[3] * 255)
+        hex_color = "#{:02X}{:02X}{:02X}{:02X}".format(*rgba_color[0:3], alpha)
+    else:
+        hex_color = "#{:02X}{:02X}{:02X}".format(*rgba_color)
+    
+    return hex_color
+
+
+def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, cbar, **kwargs):
 
     x_width = np.abs(np.min(X) - np.max(X))
     y_width = np.abs(np.min(Y) - np.max(Y))
     
+    cmap = cm.get_cmap(cbar)
+    # Define the number of contour levels you want
+    # Generate contour levels based on your data
+
+    custom_colors = [rgba_to_hex(cmap(level)) for level in np.linspace(0,1,256)]
     fig = go.Figure(data =
         go.Contour(
             z = mask.T,
-            # showscale=False,
+            showscale=False,
             opacity=0.8,
+            colorscale=custom_colors,
             colorbar=dict(**kwargs)
         ))
     
@@ -49,17 +75,10 @@ def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, **kwargs):
     image_data = fig.to_image(format="png")
     # colorbar_data = colorbar_fig.to_image(format="png")
     
-    return base64.b64encode(image_data).decode('utf-8')#, base64.b64encode(colorbar_data).decode('utf-8')
+    return base64.b64encode(image_data).decode('utf-8'), f"{np.nanmin(mask):.3f}", f"{np.nanmax(mask):.3f}"
 
 
-def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, maxTime, timeStep):
-    drawOptions={
-            'polyline':True,
-            'rectangle':True,
-            'polygon':True,
-            'circle':False,
-            'marker':True,
-            'circlemarker':False}
+def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, dampingFactor, maxTime, timeStep, cbar):
 
     damID = 'default_dam'
     simID = 'default_sim'
@@ -72,10 +91,10 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, m
             'tailingsDensity': tailingsDensity,
             'maxTime': maxTime,
             'timeStep': timeStep,
-            'dampingCoeff': 0.04,
+            'dampingFactor': dampingFactor,
             'fileHandler': None
     }
-    print(latitude,longitude)
+
     ''' Runs the flood simulation for the selected point '''
     simID = f'{damID}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     simulation = DAM_BREAK(**simulationSettings)
@@ -85,36 +104,22 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, m
     simRecord = simulation.get_database_record(simID)
 
     simResultsHandler = DAMBREAK_SIM(simRecord,simulation.results_to_array())
-    
     dMask,X,Y,vxMask,vyMask,vzMask,speedMask,altMask,eMask,depthMask = simResultsHandler.fit_all_masks(simResultsHandler.max_time())
-    
+
     results = {}
 
     results['minLon'],results['maxLon'],results['minLat'],results['maxLat'] = simResultsHandler.get_lon_lat_bounds(maxTime=simResultsHandler.max_time())
-    inud = dMask > 0
-    inud[inud == 0] = np.nan
     
     masks = {
         'speed': speedMask,
-        'alt': altMask,
         'energy': eMask,
-        'inundation': inud,
-        'density': dMask,
         'depth': depthMask
     }
-    
-    units = {
-        'speed': 'm/s',
-        'alt': 'm',
-        'energy': 'J',
-        'inundation': '',
-        'density': '',
-        'depth': 'm'
-    }
-    
+        
     for name, mask in masks.items():
         
-        results[name] =  get_image_data(mask,X,Y,title = units[name])
+        # results[name] =  get_image_data(mask,X,Y,cbar,title = units[name])
+        results[name] =  {i:j for i,j in zip(['img','mn','mx'],get_image_data(mask,X,Y,cbar))}
         # results[name], results[f"colorbar-{name}"] = get_image_data(mask,X,Y,title = units[name])
 
     return results
@@ -126,8 +131,9 @@ def start():
     
     try:
         for k,v in json_data.items():
-
-            json_data[k] = float(v)
+            if k != 'cbar':
+                json_data[k] = float(v)
+                print(k,v)
 
     except Exception as e:
         print(e)
@@ -142,9 +148,9 @@ def start():
     
 @app.route('/')    
 @cross_origin()
-def helloWorld():
+def check():
   return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(port=3000, debug=True)
     # app.run(host='0.0.0.0', port=5000, debug=True)
