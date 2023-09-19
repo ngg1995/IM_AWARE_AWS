@@ -6,7 +6,6 @@ from datetime import datetime
 import io
 import numpy as np
 import plotly.graph_objects as go
-from matplotlib import cm
 
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
@@ -15,46 +14,20 @@ app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-def rgba_to_hex(rgba_color):
-    """
-    Convert RGBA color to hexadecimal color.
-
-    :param rgba_color: Tuple or list containing RGBA values in the range [0, 1].
-    :return: Hexadecimal color string (e.g., '#RRGGBB' or '#RRGGBBAA' for RGB or RGBA).
-    """
-    if len(rgba_color) < 3 or len(rgba_color) > 4:
-        raise ValueError("RGBA color should be a tuple or list of 3 or 4 values.")
-    
-    rgba_color = [int(value * 255) for value in rgba_color[:3]]  # Convert to 8-bit values (0-255)
-    
-    if len(rgba_color) == 4:
-        alpha = int(rgba_color[3] * 255)
-        hex_color = "#{:02X}{:02X}{:02X}{:02X}".format(*rgba_color[0:3], alpha)
-    else:
-        hex_color = "#{:02X}{:02X}{:02X}".format(*rgba_color)
-    
-    return hex_color
-
 
 def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, cbar, **kwargs):
 
     x_width = np.abs(np.min(X) - np.max(X))
     y_width = np.abs(np.min(Y) - np.max(Y))
     
-    cmap = cm.get_cmap(cbar)
-    # Define the number of contour levels you want
-    # Generate contour levels based on your data
-
-    custom_colors = [rgba_to_hex(cmap(level)) for level in np.linspace(0,1,256)]
     fig = go.Figure(data =
         go.Contour(
             z = mask.T,
             showscale=False,
             opacity=0.8,
-            colorscale=custom_colors,
+            colorscale=cbar,
             colorbar=dict(**kwargs)
         ))
-    
     
     fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
@@ -73,7 +46,6 @@ def get_image_data(mask: np.ndarray, X: np.ndarray, Y: np.ndarray, cbar, **kwarg
     # colorbar_fig.show()
     
     image_data = fig.to_image(format="png")
-    # colorbar_data = colorbar_fig.to_image(format="png")
     
     return base64.b64encode(image_data).decode('utf-8'), f"{np.nanmin(mask):.3f}", f"{np.nanmax(mask):.3f}"
 
@@ -124,6 +96,30 @@ def sim(latitude,longitude, pondRadius, nObj, tailingsVolume, tailingsDensity, d
 
     return results
 
+@app.route('/colorbar', methods=['POST'])
+@cross_origin()
+def make_colorbar():
+    json_data = request.json
+    print(json_data['color'])
+    fig = go.Figure(data =
+        go.Heatmap(
+            z=[[i for i in range(0,100)] for _ in range(0,20)],
+            showscale=False,
+            colorscale=json_data['color']
+        ))
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_layout(
+        width=1000, 
+        height=100, 
+        margin=dict(l=0, r=0, t=0, b=0),
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+    image_data = fig.to_image(format="png")
+    
+    return make_response(jsonify({'img':base64.b64encode(image_data).decode('utf-8')}))
+
 @app.route('/sim', methods=['POST'])
 @cross_origin()
 def start():
@@ -152,5 +148,5 @@ def check():
   return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
-    # app.run(port=5000, debug=True)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
