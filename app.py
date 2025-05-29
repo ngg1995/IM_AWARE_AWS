@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
 
+
 app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -148,5 +149,8 @@ def check():
   return "IM AWARE BACKEND"
     
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
-    # app.run(host='0.0.0.0', port=5000, debug=True)
+    import platform
+    if platform.system().lower() == 'linux':
+        app.run(host='0.0.0.0', port=5000)
+    else:
+        app.run(port=5000, debug=True)
