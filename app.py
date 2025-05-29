@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, Response, make_response
+from flask import Flask, request, jsonify, render_template, Response, make_response, send_from_directory
 from flask_cors import CORS, cross_origin
 
 import base64
@@ -11,7 +11,7 @@ from dam_break.dambreak_sim import DAMBREAK_SIM
 from dam_break.dam_break import DAM_BREAK
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../APP/dist')
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
@@ -143,11 +143,19 @@ def start():
     response = make_response(jsonify(data))
     return response
     
-@app.route('/')    
-@cross_origin()
-def check():
-  return "IM AWARE BACKEND"
+# @app.route('/')    
+# @cross_origin()
+# def check():
+#   return "IM AWARE BACKEND"
     
+@app.route('/')
+def serve_react_index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_react_files(path):
+    return send_from_directory(app.static_folder, path)
+
 if __name__ == '__main__':
     import platform
     if platform.system().lower() == 'linux':
